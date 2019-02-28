@@ -1,8 +1,9 @@
 (ns tz.core
   (:require [tz.http :refer [routes]]
-            [org.httpkit.server :refer [run-server]])
+            [org.httpkit.server :refer [run-server]]
+            [clojure.tools.logging :as log])
   (:gen-class))
 
 (defn -main []
   (run-server routes {:port 3000})
-  (println "server is running"))
+  (log/info "server running"))
