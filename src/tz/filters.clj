@@ -12,7 +12,7 @@
 (defn consumer
   [group-id topic]
   (let [consumer-props
-        {ConsumerConfig/BOOTSTRAP_SERVERS_CONFIG,        conf/server-url
+        {ConsumerConfig/BOOTSTRAP_SERVERS_CONFIG,        conf/broker-url
          ConsumerConfig/GROUP_ID_CONFIG,                 group-id
          ConsumerConfig/KEY_DESERIALIZER_CLASS_CONFIG,   StringDeserializer
          ConsumerConfig/VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer
