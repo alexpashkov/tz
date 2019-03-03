@@ -6,13 +6,11 @@
   (:import [org.apache.curator.test TestingServer]
            [kafka.server KafkaConfig KafkaServerStartable]))
 
-
 (defn start-zookeeper []
   (fs/delete-dir "/tmp/zk")
   (let [zk (TestingServer. conf/zookeeper-port (io/file "/tmp/zk"))]
     (log/info "zk started")
     zk))
-
 
 (defn start-kafka-server []
   (let [config (KafkaConfig. {"zookeeper.connect"                (str conf/zookeeper-host conf/zookeeper-port)

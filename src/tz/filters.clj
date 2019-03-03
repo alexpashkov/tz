@@ -37,17 +37,20 @@
     filter))
 
 (defn create-filter! [topic q]
-  (swap! filters add-filter topic q))
+  (let [{id      :last-id
+         filters :filters} (swap! filters add-filter topic q)]
+    (filters id)))
 
-(defn get-filters [] (:filters @filters))
+(defn get-filters [] (vals (@filters :filters)))
 
-(defn get-messages [filter-id]
-  (get-in @filters [:filters filter-id :messages] []))
+(defn get-messages [id]
+  (get-in @filters [:filters id :messages] []))
 
 (defn delete-filter! [id]
-  (when-let [{consumer :consumer} (@filters id)]
+  (when-let [{consumer :consumer :as filter} (@filters id)]
     (.close consumer)
-    (swap! filters update :filters dissoc id)))
+    (swap! filters update :filters dissoc id)
+    filter))
 
 (defn poll! []
   (while true
@@ -55,5 +58,4 @@
       (try (let [records (.poll consumer 100)]              ;; not sure about error-handling here
              (doseq [record records]
                (swap! filters update id add-message (.value record))))
-           (catch Exception e (log/error e)))
-      )))
+           (catch Exception e (log/error e))))))
