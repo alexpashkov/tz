@@ -1,22 +1,59 @@
 (ns tz.filters
-  (:refer-clojure :exclude [get]))
+  (:refer-clojure :exclude [get])
+  (:require [clojure.string :refer [lower-case]]
+            [clojure.tools.logging :as log]
+            [tz.conf :as conf])
+  (:import [org.apache.kafka.clients.consumer ConsumerConfig KafkaConsumer]
+           [org.apache.kafka.common.serialization StringDeserializer]))
 
 (def ^:private filters (atom {:filters {}
                               :last-id 0}))
 
-(defn- add-filter [filters filter]
-  (-> filters
-      (assoc-in [:filters (:last-id filters)] filter)
-      (update :last-id inc)))
+(defn consumer
+  [group-id topic]
+  (let [consumer-props
+        {ConsumerConfig/BOOTSTRAP_SERVERS_CONFIG,        conf/server-url
+         ConsumerConfig/GROUP_ID_CONFIG,                 group-id
+         ConsumerConfig/KEY_DESERIALIZER_CLASS_CONFIG,   StringDeserializer
+         ConsumerConfig/VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer
+         ConsumerConfig/AUTO_OFFSET_RESET_CONFIG,        "latest"}]
+    (doto (KafkaConsumer. consumer-props) (.subscribe [topic]))))
 
-(defn add [filter]
-  (swap! filters add-filter filter))
+(defn- add-filter [filters topic q]
+  (let [id (inc (filters :last-id))
+        filter {
+                :id       id
+                :topic    topic
+                :q        (lower-case q)
+                :consumer (consumer (str id) topic)
+                :messages []}]
+    (-> filters
+        (assoc-in [:filters id] filter)
+        (assoc :last-id id))))
 
-(defn get
-  ([]
-   (:filters @filters))
-  ([filter-id]
-   (get-in @filters [:filters filter-id])))
+(defn- add-message [{q :q :as filter} message]
+  (if (.contains (lower-case message) q)
+    (update filter :messages conj message)
+    filter))
 
-(defn delete [filter-id]
-  (swap! filters update :filters dissoc filter-id))
+(defn create-filter! [topic q]
+  (swap! filters add-filter topic q))
+
+(defn get-filters [] (:filters @filters))
+
+(defn get-messages [filter-id]
+  (get-in @filters [:filters filter-id :messages] []))
+
+(defn delete-filter! [id]
+  (when-let [{consumer :consumer} (@filters id)]
+    (.close consumer)
+    (swap! filters update :filters dissoc id)))
+
+(defn poll! []
+  (while true
+    (doseq [[id {consumer :consumer}] (@filters :filters)]
+      (try (let [records (.poll consumer 100)]              ;; not sure about error-handling here
+             (doseq [record records]
+               (swap! filters update id add-message (.value record))))
+           (catch Exception e (log/error e)))
+      )))

@@ -9,12 +9,12 @@
                  [ring/ring-defaults "0.3.2"]
                  [org.clojure/tools.logging "0.4.0"]
                  [ch.qos.logback/logback-classic "1.2.3"]
-                 [org.slf4j/log4j-over-slf4j "1.7.25"]
                  [me.raynes/fs "1.4.6"]
-                 [org.apache.kafka/kafka-clients "1.0.0"]
-                 [org.apache.curator/curator-test "2.8.0"]
                  [org.apache.kafka/kafka_2.11 "1.0.0" :exclusions [org.slf4j/slf4j-log4j12
-                                                                   log4j/log4j]]]
+                                                                   log4j/log4j]]
+                 [org.slf4j/log4j-over-slf4j "1.7.25"]
+                 [org.apache.curator/curator-test "2.8.0"]
+                 [org.apache.kafka/kafka-clients "1.0.0"]]
   :main ^:skip-aot tz.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
