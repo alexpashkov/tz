@@ -20,15 +20,15 @@
     (doto (KafkaConsumer. consumer-props) (.subscribe [topic]))))
 
 (defn- add-filter [filters topic q]
-  (let [id (inc (filters :last-id))
-        filter {
-                :id       id
+  (let [id (-> filters :last-id inc)
+        id-str (str id)
+        filter {:id       id-str
                 :topic    topic
                 :q        (lower-case q)
-                :consumer (consumer (str id) topic)
+                :consumer (consumer id-str topic)
                 :messages []}]
     (-> filters
-        (assoc-in [:filters id] filter)
+        (assoc-in [:filters id-str] filter)
         (assoc :last-id id))))
 
 (defn- add-message [{q :q :as filter} message]
@@ -39,7 +39,10 @@
 (defn create-filter! [topic q]
   (let [{id      :last-id
          filters :filters} (swap! filters add-filter topic q)]
-    (filters id)))
+    (filters (str id))))
+
+(defn get-filter [id]
+  (get-in @filters [:filters id]))
 
 (defn get-filters [] (vals (@filters :filters)))
 
@@ -47,15 +50,15 @@
   (get-in @filters [:filters id :messages] []))
 
 (defn delete-filter! [id]
-  (when-let [{consumer :consumer :as filter} (@filters id)]
-    (.close consumer)
+  (when-let [filter (get-filter id)]
+    (.close (filter :consumer))
     (swap! filters update :filters dissoc id)
-    filter))
+    (dissoc filter :consumer)))
 
 (defn poll! []
   (while true
     (doseq [[id {consumer :consumer}] (@filters :filters)]
       (try (let [records (.poll consumer 100)]              ;; not sure about error-handling here
              (doseq [record records]
-               (swap! filters update id add-message (.value record))))
+               (swap! filters update-in [:filters id] add-message (.value record))))
            (catch Exception e (log/error e))))))

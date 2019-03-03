@@ -18,18 +18,18 @@
 
 (defn read-filter [{{id :id} :params}]
   (response
-    (if (empty? id)
-      (->> (filters/get-filters)
-           (map #(dissoc % :consumer)))
-      (filters/get-messages id))))
+   (if (empty? id)
+     (->> (filters/get-filters)
+          (map #(dissoc % :consumer)))
+     (filters/get-messages id))))
 
 (defn delete-filter [{{id :id} :params}]
   (response (filters/delete-filter! id)))
 
 (defroutes routes-without-middleware
-           (POST "/filter" [] create-filter)
-           (GET "/filter" [] read-filter)
-           (DELETE "/filter" [] delete-filter))
+  (POST "/filter" [] create-filter)
+  (GET "/filter" [] read-filter)
+  (DELETE "/filter" [] delete-filter))
 
 (def routes (-> #'routes-without-middleware
                 (wrap-defaults api-defaults)
